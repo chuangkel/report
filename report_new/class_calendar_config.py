@@ -5,7 +5,9 @@ from tkinter import *
 import tkinter
 from tkinter import ttk
 import tkinter.messagebox
-from .class_exe_report import class_exe_report
+
+from readfile import readConfig
+from class_exe_config_rep import class_exe_report
 class class_calendar:
     def __init__(self):
         self.window = tkinter.Tk()
@@ -13,7 +15,7 @@ class class_calendar:
         self.frame_head = Frame(self.window, bd=4)
         self.frame_right = Frame(self.window, bd=5)
         self.frame_bottom = Frame(self.window, bd=10)
-        # self.frame_bottom1 = Frame(self.window, bd=10)
+
         self.frame_left = Frame(self.window, bd=2)
         self.now_time = datetime.datetime.now()
         self.now_arr = str(self.now_time).split("-")
@@ -23,21 +25,22 @@ class class_calendar:
         self.e_left = StringVar()
         self.e_head = StringVar()
 
-        # self.e_report = class_exe_report()
-
         self.label_head = tkinter.Label(self.frame_head, textvariable=self.e_head).pack()
-        # self.label_bot1 = tkinter.Label(self.frame_bottom1, text='hello world').pack()
         self.label_left =tkinter.Text(self.frame_left)
         self.label_left.insert(END,"欢迎使用报表生成小工具")
         self.label_left.pack()
+
+        self.readconfig = readConfig()
 
         self.e_head.set(self.year + "年" + self.month + "月")
         self.frame_init()
         self.show_now()
         self.window.mainloop()
+
     def refresh(self):
         self.e_left.set('开始生成'  + '报表...')
         self.label_left.after(1, self.refresh())
+
     def showMsg(self,new_date):
         msg = '确认生成确认日为' + new_date + '的报表？'
         result = tkinter.messagebox.askokcancel('提示', msg)
@@ -47,6 +50,9 @@ class class_calendar:
             self.e_left.set('开始生成' + '报表...')
 
             e_report = class_exe_report()
+
+            e_report.setConfig(self.readconfig)
+
             e_report.select_day = new_date
             e_report.label_left = self.label_left
             e_report.start()
@@ -108,7 +114,6 @@ class class_calendar:
         self.frame_left.pack(side=LEFT)
         self.frame_right.pack(side=RIGHT)
         self.frame_bottom.pack(side=BOTTOM)
-        # self.frame_bottom1.pack(side=BOTTOM)
 
     def labelAction(self,event):
         day = self.year.zfill(4) + self.month.zfill(2) + str(event.widget.cget('text')).zfill(2)

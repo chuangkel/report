@@ -1,37 +1,13 @@
 # coding=UTF-8
-import sys
 import threading
-
 import pymysql, xlwt
 import os
-import time
 import re
 import tkinter.messagebox
 
 class class_exe_report(threading.Thread):
     def __init__(self):
         super(class_exe_report, self).__init__()  # 重写父类属性
-        self.dict = {
-            "C:\报表\基金资金轧差清算报表_分集合并": ["3.sql", "sheet1"],
-            "C:\报表\销售商确认汇总报表": ["5.sql", "sheet1"],
-            "C:\报表\资金交收报表（305）": ["10.305.sql", "sheet1"],
-            "C:\报表\资金交收报表（926）": ["10.926.sql", "sheet1"],
-            "C:\报表\资金交收报表（汇总）": ["10.sql", "sheet1"],
-            "C:\报表\货币份额流入流出统计": ["1.sql", "sheet1"],
-            "C:\报表\基金的资金清算报表(基金)": ["4.sql", "sheet1"],
-            "C:\报表\JY基金申赎及基金投资人结构日报表": ["2.3.sql"
-                                      "|2.4.sql"
-                                      "|2.1.sql"
-                                      "|2.5.sql"
-                                      "|2.2.sql", "保有份额|保有净值|基金交易|认申购|账户"],
-        }
-
-        self.path_one = r"C:\sqls\sql_one"
-        self.path_two = r"C:\sqls\sql_two"
-        self.path_report = 'C:\\报表'
-
-        self.host, self.user, self.passwd, self.db = '127.0.0.1', 'root', 'root', 'yunta'
-        self.conn = pymysql.connect(user=self.user, host=self.host, port=3306, passwd=self.passwd, db=self.db, charset='utf8')
 
         self.borders = xlwt.Borders()
         self.borders.bottom = xlwt.Borders.THIN
@@ -40,7 +16,15 @@ class class_exe_report(threading.Thread):
         self.borders.top = xlwt.Borders.THIN
         self.style = xlwt.XFStyle()
         self.style.borders = self.borders
-        
+
+    def setConfig(self,readconfig):
+        self.dict = readconfig.dict
+        self.path_one = readconfig.sql_path
+        self.path_report = readconfig.sql_excel
+        print(readconfig.user)
+        self.conn = pymysql.connect(user=readconfig.user, host=readconfig.host, port=3306, passwd=readconfig.passwd, db=readconfig.db, charset='utf8')
+
+
     #查询申请日期和确认日期
     def select_resAndConfirmDate(self,selectDate):
         cur = self.conn.cursor()
@@ -87,7 +71,7 @@ class class_exe_report(threading.Thread):
         self.export_info("生成"+ "%s.xls" % name)
 
     def replace_date(self,b):
-        paths = [self.path_one, self.path_two]
+        paths = [self.path_one]
         for i in paths:
             os.chdir(i)
             for file in os.listdir(i):
@@ -121,54 +105,12 @@ class class_exe_report(threading.Thread):
                 os.remove(path_file)
         self.export_info("生成报表".center(40, "="))
 
-        self.startwith_sql()
-
         for k, v in self.dict.items():
             sqls = v[0].split("|")
             sheets = v[1].split("|")
-            if k == 'C:\报表\JY基金申赎及基金投资人结构日报表':
+            if k == 'JY基金申赎及基金投资人结构日报表':
                 filename = k + self.requestdate + ".xls"
             else:
                 filename = k + self.confirmdate + ".xls"
             self.tab_2_excel(self.path_one, sqls, sheets, filename)
         tkinter.messagebox.askokcancel('提示', "报表生成成功！")
-
-    def sqlname2excelname(self,name, sqlfilename):
-        book = xlwt.Workbook(encoding='utf-8', style_compression=0)
-
-        each = sqlfilename
-        sheet = "sheet1"
-
-        cur = self.conn.cursor()
-        os.chdir(self.path_two)
-
-        sheet = book.add_sheet(sheet)
-
-        sql = ""
-        with open(each, "r", encoding="utf-8") as f:
-            for each_line in f.readlines():
-                sql += each_line
-            if sql:
-                cur.execute(sql)
-                fields = cur.description
-                all_data = cur.fetchall()
-
-                for col in range(0, len(fields)):
-                    sheet.write(0, col, fields[col][0], self.style)
-
-                row = 1
-                for data in all_data:
-                    for col, field in enumerate(data):
-                        sheet.write(row, col, field, self.style)
-                    row += 1
-        f.close()
-        os.chdir(self.path_report)
-        book.save('%s.xls' % name)
-        self.export_info("生成" + self.path_report + "%s.xls" % name)
-
-    def startwith_sql(self):
-        for i in os.listdir(self.path_two):
-            whole_path = os.path.join(self.path_two, i)
-            if os.path.isfile(whole_path):
-                name = i.split(".")[0]
-                self.sqlname2excelname(name + self.confirmdate, i)
